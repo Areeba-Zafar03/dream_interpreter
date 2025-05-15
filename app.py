@@ -1,121 +1,88 @@
 import streamlit as st
-from dream_bot import get_qa_chain
 
-# Hide Streamlit's default UI elements (like sidebar)
-st.set_page_config(page_title="Dream Interpreter", layout="wide")
+# Page setup
+st.set_page_config(page_title="AI Dream Interpreter", layout="wide")
 
-# Custom CSS for dark dreamy theme with lilac background
-st.markdown("""
+# Custom CSS styling with your hosted image
+page_styles = """
 <style>
-/* Set lilac background for the entire page */
-html, body, .css-1v3fvcr {
-    background-color: #C8A2D4 !important;  /* Lilac color */
-    color: #ffffff;
-    font-family: 'Segoe UI', sans-serif;
-}
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
-/* Remove Streamlit's top padding */
-main > div:first-child {
-    padding-top: 0rem;
-}
-
-/* Hide sidebar */
 [data-testid="stSidebar"] {
     display: none;
 }
 
-/* Navbar styling */
-.navbar {
-    background-color: #490F4A;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: white;
-}
-
-.nav-links a {
-    margin-left: 25px;
-    color: #fff;
-    text-decoration: none;
-}
-
-.banner {
-    background: url('https://png.pngtree.com/background/20210709/original/pngtree-full-purple-beautiful-starry-banner-background-picture-image_961976.jpg') no-repeat center center;
+[data-testid="stAppViewContainer"] {
+    background-image: url("https://areeba-zafar03.github.io/Dreams/dreamimage.jpg");
     background-size: cover;
-    padding: 5rem 2rem;
-    text-align: center;
-    border-radius: 10px;
-    margin-top: 1rem;
+    background-position: center;
+    font-family: 'Poppins', sans-serif;
+    color: black;
 }
 
-.banner h1 {
-    font-size: 3rem;
-    color: #fff;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+h1, p, div, span, .stText, .stMarkdown {
+    color: white !important;
+    text-align: center !important;
 }
 
-.input-area {
-    background-color: #1c2331;
-    padding: 2rem;
-    border-radius: 12px;
-    margin-top: 2rem;
+h1 {
+    font-size: 3em;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    margin-top: -40px;
 }
 
-textarea {
-    background-color: #141a2a;
-    color: white;
+p {
+    margin-bottom: -10px;
+    font-size: 1.2em;
+    font-weight: 500;
 }
 
-.button {
-    background-color: #141a2a;
-    margin-top: 1rem;
+[data-testid="stHeader"] {
+    background-color: rgba(0, 0, 0, 0);
 }
 
-.response-box {
-    background-color: #202d44;
-    padding: 1.5rem;
-    border-radius: 12px;
-    margin-top: 2rem;
-    color: white;
+.stButton > button {
+    background-color: #7393B3 !important;
+    color: white !important;
+    border: none !important;
+    padding: 1em 3em !important;
+    border-radius: 12px !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    transition: all 0.3s ease !important;
+    margin: 30px auto !important;
+    display: block !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+.stButton > button:hover {
+    background-color: #0047AB !important;
+    transform: scale(1.05) !important;
 }
 </style>
-""", unsafe_allow_html=True)
+"""
 
-# Navbar
-st.markdown("""
-<div class='navbar'>
-    <div><a href="/" style="color: white; text-decoration: none;"><strong>🌙 Dream Interpreter</strong></a></div>
-    <div class='nav-links'>
-        <a href="/How_It_Works">How it works</a>
-        <a href="/FAQ">FAQ</a>
+st.markdown(page_styles, unsafe_allow_html=True)
+
+# Lottie animation (centered)
+st.components.v1.html("""
+    <div style="display: flex; justify-content: center; align-items: center; transform: translateY(-40px);">
+        <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+        <lottie-player 
+            src="https://lottie.host/0741b903-b3fb-4d6b-a581-2568897620c9/QSdd9vlD7X.json"  
+            background="transparent"  
+            speed="1"  
+            style="height: 300px;"  
+            loop  
+            autoplay>
+        </lottie-player>
     </div>
-</div>
-""", unsafe_allow_html=True)
+""", height=250)
 
-# Banner
-st.markdown("""
-<div class='banner'>
-    <h1>AI Dream Interpreter: <br> Unlock the Mysteries of Your Dreams</h1>
-</div>
-""", unsafe_allow_html=True)
+# Main title and subtitle
+st.markdown("<h1>🌙 Welcome to AI Dream Interpreter</h1>", unsafe_allow_html=True)
+st.markdown("<p>Discover what your dreams mean using classical texts and AI insights.</p>", unsafe_allow_html=True)
 
-# Dream Input Section
-st.markdown("### 📝 Describe your dream")
-user_input = st.text_area("", height=150, placeholder="Enter as much detail about your dream as you can remember...")
-
-submit = st.button("🔍 Decode Dream")
-
-# Response Section
-if submit:
-    if user_input.strip() == "":
-        st.warning("Please enter your dream before decoding.")
-    else:
-        with st.spinner("Analyzing your dream..."):
-            try:
-                chain = get_qa_chain()
-                result = chain.run(user_input)
-                st.markdown(f"<div class='response-box'><h4>🔮 Interpretation:</h4><p>{result}</p></div>", unsafe_allow_html=True)
-            except Exception as e:
-                st.error(f"Error: {e}")
+# Start button
+if st.button("START INTERPRETING"):
+    st.switch_page("pages/DREAM.py")  # Make sure DREAM.py exists in /pages

@@ -1,44 +1,93 @@
-# dream_bot.py
-
 import os
+import json
+import traceback
+from datetime import datetime
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.chat_models import ChatOpenAI
 
-# Set your Gemini API key
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAcQsVzPNzfFYFrmMJrBK5MG8MZwjz20uM"  # Replace with your key
+# Set Groq API Key
+os.environ["OPENAI_API_KEY"] = "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"  # Replace with your actual key
 
-def build_or_load_vectorstore():
-    index_path = "dream_faiss_index"
-    embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# Book paths
+BOOKS = {
+    "ibn_sirin": "ibn_sirin_book.pdf",
+    "ibn_raashid": "ibn_raashid_book.pdf"
+}
 
-    if not os.path.exists(index_path):
-        print("📘 Loading Ibn Sirin book...")
-        loader = PyPDFLoader("ibn_sirin_book.pdf")
-        pages = loader.load()
+HISTORY_FILE = "dream_history.json"
 
-        print("✂️ Splitting pages into chunks...")
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        docs = splitter.split_documents(pages)
+def load_dream_history():
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
-        print("🧠 Generating embeddings and saving index...")
-        vectorstore = FAISS.from_documents(docs, embedding_model)
-        vectorstore.save_local(index_path)
-        print("✅ Embeddings created and index saved.")
-    else:
-        print("🔄 Loading existing FAISS index...")
+def save_dream_to_history(dream, interpretations):
+    history = load_dream_history()
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "dream": dream,
+        "interpretations": interpretations
+    }
+    history.append(entry)
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
 
-    return FAISS.load_local(index_path, embedding_model, allow_dangerous_deserialization=True)
+def get_multi_book_qa_results(query):
+    try:
+        # Use CPU to avoid meta tensor GPU issues
+        embedding_model = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"}
+        )
+    except Exception as e:
+        print("Embedding model loading failed:", e)
+        traceback.print_exc()
+        raise
 
-def get_qa_chain():
-    vectorstore = build_or_load_vectorstore()
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.3)
-    qa = RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=vectorstore.as_retriever(search_type="similarity", k=4),
-        return_source_documents=False
-    )
-    return qa
+    results = {}
+    for book_key, book_path in BOOKS.items():
+        index_path = f"dream_faiss_index_{book_key}"
+        try:
+            if not os.path.exists(index_path):
+                loader = PyPDFLoader(book_path)
+                pages = loader.load()
+                splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+                docs = splitter.split_documents(pages)
+                vectorstore = FAISS.from_documents(docs, embedding_model)
+                vectorstore.save_local(index_path)
+            else:
+                vectorstore = FAISS.load_local(index_path, embedding_model, allow_dangerous_deserialization=True)
+
+            llm = ChatOpenAI(
+                model="llama3-70b-8192",
+                base_url="https://api.groq.com/openai/v1",
+                temperature=0.7,
+                max_tokens=600
+            )
+
+            qa = RetrievalQA.from_chain_type(
+                llm=llm,
+                retriever=vectorstore.as_retriever(search_type="similarity", k=4),
+                return_source_documents=False
+            )
+
+            short_prompt = f"""Interpret the following dream using insights from the book '{book_key.replace('_', ' ').title()}'. 
+Respond clearly in 10 to 15 short lines.
+
+Dream: {query}"""
+            interpretation = qa.run(short_prompt)
+            results[book_key] = interpretation.strip()
+
+        except Exception as e:
+            results[book_key] = f"Error processing {book_key}: {e}"
+            print(f"[ERROR] {book_key}: {e}")
+            traceback.print_exc()
+
+    # Save to history
+    save_dream_to_history(query, results)
+    return results
