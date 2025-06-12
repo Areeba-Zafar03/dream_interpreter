@@ -1,20 +1,21 @@
+# Core UI
 streamlit==1.24.1
 
-# LangChain-related
+# Langchain ecosystem
 langchain==0.0.202
 langchain-community==0.0.13
 langchain-google-genai
 langchain-huggingface
 
-# PDF Handling
+# PDF parsing
 pypdf==3.10.3
 
-# Embedding & Search
-faiss-cpu==1.7.4
+# Embeddings and FAISS
 sentence-transformers==2.2.2
+faiss-cpu==1.7.4
 
-# Transformers & Torch
+# Transformers and inference
 transformers==4.33.1
 torch==2.0.1
-accelerate==0.20.3
 huggingface-hub==0.16.4
+accelerate==0.20.3
